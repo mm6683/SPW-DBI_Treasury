@@ -146,18 +146,31 @@ hr{border:none;border-top:1px solid var(--line);margin:1.1rem 0}
 <body>
 <div class="wrap" id="app"></div>
 
+<script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore-compat.js"></script>
 <script>
-/* ---------- storage (this device) ---------- */
-var KEY = "game-treasury-v1";
-function load(){
-  try{ var raw = localStorage.getItem(KEY); return raw ? JSON.parse(raw) : null; }
-  catch(e){ return null; }
-}
+/* ---------- storage (shared across every device, via Firebase) ---------- */
+// 1. Firebase console -> Project settings -> your web app -> "SDK setup and configuration" -> paste the config object below.
+// 2. Firestore Database -> Create database -> Rules tab -> paste the rule from README.md -> Publish.
+var firebaseConfig = {
+  apiKey: "PASTE_YOUR_API_KEY",
+  authDomain: "PASTE_YOUR_PROJECT.firebaseapp.com",
+  projectId: "PASTE_YOUR_PROJECT_ID",
+  storageBucket: "PASTE_YOUR_PROJECT.appspot.com",
+  messagingSenderId: "PASTE_YOUR_SENDER_ID",
+  appId: "PASTE_YOUR_APP_ID"
+};
+firebase.initializeApp(firebaseConfig);
+var db = firebase.firestore();
+var gameDocRef = db.collection("kurkenemmer").doc("game");
+
 function save(){
-  try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
+  if(!S) return;
+  gameDocRef.set(S).catch(function(e){ console.error("Opslaan mislukt:", e); });
 }
 
-var S = load();          // the whole bank
+var S;                   // the whole bank -- undefined until the first reply from Firebase arrives
+var dbError = null;      // set if the connection to Firebase fails
 var view = null;         // current screen
 var me = null;           // who is signed in
 var flash = "";
@@ -211,20 +224,71 @@ function amountFrom(v){
 /* ---------- render router ---------- */
 function go(v){ view = v; flash = ""; render(); }
 
+/* Other devices can push a fresh S in at any moment (see the onSnapshot
+   listener below). If someone is mid-typing when that happens, save and
+   restore their cursor + typed value so they don't lose it. */
+function captureFocus(){
+  var el = document.activeElement;
+  if(el && el.id && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")){
+    return {id: el.id, value: el.value, start: el.selectionStart, end: el.selectionEnd};
+  }
+  return null;
+}
+function restoreFocus(info){
+  if(!info) return;
+  var el = document.getElementById(info.id);
+  if(!el) return;
+  el.value = info.value;
+  el.focus();
+  try{ el.setSelectionRange(info.start, info.end); }catch(e){}
+}
+
 function render(){
   var app = document.getElementById("app");
-  if(view && view.name === "admin-login"){ app.innerHTML = adminLoginScreen(); wireAdminLogin(); return; }
-  if(view && view.name === "admin-panel"){ app.innerHTML = adminPanelScreen(); wireAdminPanel(); return; }
-  if(!S){
-    if(adminAuthed){ app.innerHTML = setupScreen(); wireSetup(); return; }
-    app.innerHTML = waitingScreen(); wireWaiting(); return;
+  var focusInfo = captureFocus();
+  var html, wire = null;
+
+  if(dbError){ html = dbErrorScreen(); wire = wireRetry; }
+  else if(view && view.name === "admin-login"){ html = adminLoginScreen(); wire = wireAdminLogin; }
+  else if(view && view.name === "admin-panel"){ html = adminPanelScreen(); wire = wireAdminPanel; }
+  else if(S === undefined){ html = loadingScreen(); }
+  else if(!S){
+    if(adminAuthed){ html = setupScreen(); wire = wireSetup; }
+    else { html = waitingScreen(); wire = wireWaiting; }
   }
-  if(view && view.name === "pin"){ app.innerHTML = pinScreen(); wirePin(); return; }
-  if(!me){ app.innerHTML = signInScreen(); wireSignIn(); return; }
-  if(view && view.name === "ledger"){ app.innerHTML = ledgerScreen(); wireBack(); return; }
-  if(view && view.name === "roster"){ app.innerHTML = rosterScreen(); wireBack(); return; }
-  if(view && view.name === "move"){ app.innerHTML = moveScreen(); wireMove(); return; }
-  app.innerHTML = homeScreen(); wireHome();
+  else if(view && view.name === "pin"){ html = pinScreen(); wire = wirePin; }
+  else if(!me){ html = signInScreen(); wire = wireSignIn; }
+  else if(view && view.name === "ledger"){ html = ledgerScreen(); wire = wireBack; }
+  else if(view && view.name === "roster"){ html = rosterScreen(); wire = wireBack; }
+  else if(view && view.name === "move"){ html = moveScreen(); wire = wireMove; }
+  else { html = homeScreen(); wire = wireHome; }
+
+  app.innerHTML = html;
+  if(wire) wire();
+  restoreFocus(focusInfo);
+}
+
+function loadingScreen(){
+  return '' +
+  '<div class="top"><div class="brand"><img src="./SPW_DeBoomIn_Huisstijl/logos/logo.jpg" class="brand-logo" alt="Logo"><h1>Kurkenemmer</h1></div></div>' +
+  '<div class="card balance" style="text-align:center">' +
+    '<div class="figure" style="font-size:1.8rem">Verbinden&hellip;</div>' +
+    '<p class="muted">Even geduld, we halen de laatste stand op.</p>' +
+  '</div>';
+}
+
+function dbErrorScreen(){
+  return '' +
+  '<div class="top"><div class="brand"><img src="./SPW_DeBoomIn_Huisstijl/logos/logo.jpg" class="brand-logo" alt="Logo"><h1>Kurkenemmer</h1></div></div>' +
+  '<div class="card">' +
+    '<h2>Geen verbinding</h2>' +
+    '<p class="muted small">Kan de database niet bereiken. Controleer of firebaseConfig bovenaan index.html is ingevuld en of de Firestore-rules gepubliceerd zijn.</p>' +
+    '<p class="small" style="word-break:break-all">' + esc(dbError) + '</p>' +
+  '</div>' +
+  '<button class="btn primary" id="retry" style="margin-top:.6rem">Opnieuw proberen</button>';
+}
+function wireRetry(){
+  document.getElementById("retry").onclick = function(){ location.reload(); };
 }
 
 /* ---------- 0. waiting room + admin gate ---------- */
@@ -293,7 +357,7 @@ function wireAdminPanel(){
   document.getElementById("back").onclick = function(){ go(null); };
   if(view.confirming){
     document.getElementById("resetYes").onclick = function(){
-      try{ localStorage.removeItem(KEY); }catch(e){}
+      gameDocRef.delete().catch(function(e){ console.error("Resetten mislukt:", e); });
       S = null; me = null; adminAuthed = true; go(null);
     };
     document.getElementById("resetNo").onclick = function(){
@@ -688,6 +752,15 @@ function rosterScreen(){
 function wireBack(){
   document.getElementById("back").onclick = function(){ go(null); };
 }
+
+gameDocRef.onSnapshot(function(snap){
+  dbError = null;
+  S = snap.exists ? snap.data() : null;
+  render();
+}, function(err){
+  dbError = (err && err.message) ? err.message : String(err);
+  render();
+});
 
 render();
 </script>
