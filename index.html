@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kurkenemmer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+@font-face {
+  font-family: 'Junegull';
+  src: url('./SPW_DeBoomIn_Huisstijl/fonts/junegull/Junegull-ExtraBold.otf') format('opentype');
+  font-weight: 800;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'AustinText';
+  src: url('./SPW_DeBoomIn_Huisstijl/fonts/austin/AustinText-RomanNo2-Trial-BF662b0bb30cd34.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+:root {
+  --brand-dark-green: #195b2e;
+  --brand-light-green: #8dc966;
+  --brand-yellow: #edc158;
+  --brand-red: #f05555;
+  
+  --bg: #f4f6f4;
+  --surface: rgba(255, 255, 255, 0.96);
+  --raise: #ffffff;
+  --line: rgba(25, 91, 46, 0.2);
+  
+  --text: #195b2e;
+  --muted: rgba(25, 91, 46, 0.75);
+  --gold: #edc158;
+  --gold-ink: #195b2e;
+  --red: #f05555;
+  --green: #8dc966;
+  
+  --r: 16px;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background: var(--bg) url('./SPW_DeBoomIn_Huisstijl/graphics/achtergrond-04.png') no-repeat center center fixed;
+  background-size: cover; 
+  color:var(--text);
+  font-family: 'AustinText', "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+  line-height: 1.5;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+  -webkit-text-size-adjust: 100%;
+}
+.wrap{max-width:32rem;margin:0 auto;padding:1.25rem 1.1rem 4rem}
+h1,h2,h3{margin:0;font-weight:normal;letter-spacing:-0.01em; color:var(--brand-dark-green)}
+h1{font-family: 'Junegull', sans-serif; font-size:36px; line-height:1.1; font-weight:800}
+h2{font-size:31.5px; line-height:1.2}
+h3{font-size:24.8px}
+p{margin:.4rem 0}
+button{font:inherit;cursor:pointer}
+input,select{font:inherit}
+.muted{color:var(--muted)}
+.small{font-size:11px}
+
+/* masthead */
+.top{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin-bottom:1.25rem}
+.brand{display:flex;align-items:center;gap:.55rem}
+.brand-logo{height:40px;width:auto;border-radius:4px;}
+.linkbtn{background:none;border:none;color:var(--muted);padding:.4rem .2rem;text-decoration:underline;
+  text-underline-offset:3px}
+.linkbtn:hover{color:var(--text)}
+
+/* cards */
+.card{background:var(--surface);border:2px solid var(--brand-dark-green);border-radius:var(--r);padding:1.25rem;
+  box-shadow: 0 4px 12px rgba(25, 91, 46, 0.15)}
+.card + .card{margin-top:.75rem}
+
+/* the hero number */
+.balance{padding:1.4rem 1.1rem 1.25rem; text-align:center}
+.balance .who{color:var(--muted);font-size:14px}
+.figure{font-family: 'Junegull', sans-serif; font-size:3.5rem;line-height:1;font-weight:800;letter-spacing:-0.01em;margin:.35rem 0 .1rem; color:var(--brand-dark-green)}
+.unit{font-size:13px;color:var(--muted)}
+.rolechip{display:inline-block;margin-top:.7rem;font-size:11px;padding:.3rem .6rem;border-radius:999px;
+  border:1px solid var(--brand-dark-green);color:var(--brand-dark-green); background:rgba(141,201,102,0.2)}
+
+/* buttons */
+.btn{width:100%;border:2px solid var(--brand-dark-green);background:var(--raise);color:var(--text);
+  border-radius:12px;padding:.85rem 1rem;text-align:left;display:flex;justify-content:space-between;
+  align-items:center;gap:.5rem;font-size:14px}
+.btn:hover{border-color:var(--brand-yellow); background:var(--surface)}
+.btn + .btn{margin-top:.5rem}
+.btn .arrow{color:var(--muted);flex:none;font-size:18px}
+.btn.primary{background:var(--brand-yellow);color:var(--gold-ink);border-color:var(--brand-dark-green);justify-content:center;
+  font-family: 'Junegull', sans-serif; font-size:18px; padding:.75rem 1rem;}
+.btn.primary:disabled{opacity:.45;cursor:not-allowed}
+.btn.quiet{background:none; border:none; text-decoration:underline; justify-content:center}
+.btn.quiet:hover{background:transparent}
+.btn.center{justify-content:center}
+
+/* team bank strip */
+.teamrow{display:flex;justify-content:space-between;align-items:center;padding:.8rem 0;
+  border-bottom:1px solid var(--line)}
+.teamrow:last-child{border-bottom:none}
+.teamrow .amt{font-family: 'Junegull', sans-serif; font-size:20px; font-weight:800}
+.teamrow.mine .name{color:var(--brand-dark-green); font-weight:bold}
+
+/* forms */
+label{display:block;font-size:14px;color:var(--text);margin:1rem 0 .4rem; font-weight:bold}
+input[type=text],input[type=number],input[type=tel],select,textarea{
+  width:100%;background:var(--raise);border:2px solid var(--line);color:var(--text);
+  border-radius:8px;padding:.7rem .8rem;font-size:14px}
+textarea{min-height:5.5rem;resize:vertical;font-family:inherit}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:none;border-color:var(--brand-yellow)}
+.amount-in{font-family:'Junegull', sans-serif; font-size:2.2rem;font-weight:800;letter-spacing:-0.01em;padding:.6rem .8rem; text-align:center}
+
+/* pin */
+.pinpad{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-top:1rem}
+.pinpad button{padding:1.2rem 0;border-radius:12px;border:2px solid var(--brand-dark-green);background:var(--raise);
+  color:var(--brand-dark-green);font-family:'Junegull', sans-serif; font-size:1.8rem;font-weight:800}
+.dots{display:flex;gap:.7rem;justify-content:center;margin:1.2rem 0 .2rem}
+.dot{width:.9rem;height:.9rem;border-radius:50%;border:2px solid var(--brand-dark-green)}
+.dot.on{background:var(--brand-yellow);border-color:var(--brand-yellow)}
+
+/* ledger */
+.entry{display:flex;gap:.7rem;padding:.65rem 0;border-bottom:1px solid var(--line);font-size:12px}
+.entry:last-child{border-bottom:none}
+.entry .tick{width:.4rem;flex:none;border-radius:2px;background:var(--line)}
+.entry.up .tick{background:var(--brand-light-green)}
+.entry.down .tick{background:var(--brand-red)}
+.entry time{display:block;color:var(--muted);font-size:10px}
+
+.err{color:var(--brand-red);font-size:13px;margin-top:.6rem;min-height:1.2em; font-weight:bold}
+.ok{color:var(--brand-light-green)}
+.stack > * + *{margin-top:.5rem}
+.rosterline{display:flex;justify-content:space-between;padding:.6rem 0;border-bottom:1px solid var(--line)}
+.rosterline:last-child{border-bottom:none}
+.pin{font-weight:bold;letter-spacing:.12em;color:var(--brand-yellow)}
+.sect{margin-top:1.5rem}
+.sect h2{margin-bottom:.6rem}
+hr{border:none;border-top:1px solid var(--line);margin:1.1rem 0}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script>
+/* ---------- storage (this device) ---------- */
+var KEY = "game-treasury-v1";
+function load(){
+  try{ var raw = localStorage.getItem(KEY); return raw ? JSON.parse(raw) : null; }
+  catch(e){ return null; }
+}
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
+}
+
+var S = load();          // the whole bank
+var view = null;         // current screen
+var me = null;           // who is signed in
+var flash = "";
+var adminAuthed = false; // resets every page load, on purpose
+
+/* Change this to your own password. */
+var ADMIN_PASSWORD = "placeholder";
+
+/* Slot order matches the four preset teams: Bikers, Gangsters, Maffia, Cartel. */
+var TEAM_COLORS = ["#3A3A3E", "#3E9C5C", "#C0392B", "#8E5CC7"];
+
+/* ---------- helpers ---------- */
+function uid(){ return Math.random().toString(36).slice(2,9); }
+function esc(s){ return String(s).replace(/[&<>"']/g, function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+function money(n){ return Number(n).toLocaleString(); }
+function unit(){ return S && S.unit ? S.unit : "kurken"; }
+function teamDot(color){
+  return '<span style="display:inline-block;width:.6rem;height:.6rem;border-radius:50%;' +
+         'background:' + color + ';margin-right:.4rem;flex:none"></span>';
+}
+
+function everyone(){
+  var list = [];
+  S.bankers.forEach(function(b){ list.push({id:b.id,name:b.name,pin:b.pin,role:"banker"}); });
+  S.teams.forEach(function(t){
+    t.members.forEach(function(m){
+      list.push({id:m.id,name:m.name,pin:m.pin,role:m.leader?"leader":"member",teamId:t.id});
+    });
+  });
+  return list;
+}
+function findPerson(id){
+  var hit = null;
+  S.bankers.forEach(function(b){ if(b.id===id) hit = {kind:"banker",obj:b}; });
+  S.teams.forEach(function(t){ t.members.forEach(function(m){
+    if(m.id===id) hit = {kind:"member",obj:m,team:t}; }); });
+  return hit;
+}
+function teamOf(id){ var p = findPerson(id); return p && p.team ? p.team : null; }
+function logIt(text, dir){
+  S.log.unshift({t:Date.now(), text:text, dir:dir||""});
+  if(S.log.length > 200) S.log.length = 200;
+}
+function amountFrom(v){
+  var n = Math.floor(Number(v));
+  if(!isFinite(n) || n <= 0) return null;
+  return n;
+}
+
+/* ---------- render router ---------- */
+function go(v){ view = v; flash = ""; render(); }
+
+function render(){
+  var app = document.getElementById("app");
+  if(view && view.name === "admin-login"){ app.innerHTML = adminLoginScreen(); wireAdminLogin(); return; }
+  if(view && view.name === "admin-panel"){ app.innerHTML = adminPanelScreen(); wireAdminPanel(); return; }
+  if(!S){
+    if(adminAuthed){ app.innerHTML = setupScreen(); wireSetup(); return; }
+    app.innerHTML = waitingScreen(); wireWaiting(); return;
+  }
+  if(view && view.name === "pin"){ app.innerHTML = pinScreen(); wirePin(); return; }
+  if(!me){ app.innerHTML = signInScreen(); wireSignIn(); return; }
+  if(view && view.name === "ledger"){ app.innerHTML = ledgerScreen(); wireBack(); return; }
+  if(view && view.name === "roster"){ app.innerHTML = rosterScreen(); wireBack(); return; }
+  if(view && view.name === "move"){ app.innerHTML = moveScreen(); wireMove(); return; }
+  app.innerHTML = homeScreen(); wireHome();
+}
+
+/* ---------- 0. waiting room + admin gate ---------- */
+function waitingScreen(){
+  return '' +
+  '<div class="top"><div class="brand"><img src="./SPW_DeBoomIn_Huisstijl/logos/logo.jpg" class="brand-logo" alt="Logo"><h1>Kurkenemmer</h1></div></div>' +
+  '<div class="card balance" style="text-align:center">' +
+    '<div class="figure" style="font-size:1.8rem">Spel begint zo</div>' +
+    '<p class="muted">Even geduld &mdash; de kurkenemmer is nog niet open.</p>' +
+  '</div>' +
+  '<div class="sect" style="text-align:center">' +
+    '<button class="linkbtn" id="adminLink">Admin login</button>' +
+  '</div>';
+}
+function wireWaiting(){
+  document.getElementById("adminLink").onclick = function(){
+    go({name:"admin-login", pw:"", back:null});
+  };
+}
+
+function adminLoginScreen(){
+  return '' +
+  '<div class="top"><button class="linkbtn" id="back">&larr; Terug</button></div>' +
+  '<h1>Admin login</h1>' +
+  '<p class="muted small">Alleen voor de spelleider.</p>' +
+  '<div class="card" style="margin-top:1rem">' +
+    '<label for="pw">Wachtwoord</label>' +
+    '<input type="text" id="pw" placeholder="placeholder" autocomplete="off">' +
+  '</div>' +
+  '<div class="err" id="err"></div>' +
+  '<button class="btn primary" id="go" style="margin-top:.6rem">Inloggen</button>';
+}
+function wireAdminLogin(){
+  document.getElementById("back").onclick = function(){ go(null); };
+  var pw = document.getElementById("pw");
+  pw.focus();
+  function attempt(){
+    if(pw.value === ADMIN_PASSWORD){
+      adminAuthed = true;
+      go(S ? {name:"admin-panel"} : null);
+    } else {
+      document.getElementById("err").textContent = "Verkeerd wachtwoord.";
+    }
+  }
+  pw.onkeydown = function(e){ if(e.key === "Enter") attempt(); };
+  document.getElementById("go").onclick = attempt;
+}
+
+function adminPanelScreen(){
+  var confirming = view.confirming;
+  return '' +
+  '<div class="top"><button class="linkbtn" id="back">&larr; Terug</button></div>' +
+  '<h1>Beheerder</h1>' +
+  '<p class="muted small">Het spel is al bezig.</p>' +
+  '<div class="sect stack">' +
+    (confirming
+      ? '<div class="card">' +
+          '<p>Dit spel en alle saldo\'s verwijderen? Dit kan niet ongedaan worden gemaakt.</p>' +
+          '<button class="btn primary" id="resetYes" style="margin-top:.6rem">Ja, alles verwijderen</button>' +
+          '<button class="btn quiet" id="resetNo" style="margin-top:.5rem">Annuleren</button>' +
+        '</div>'
+      : '<button class="btn" id="resetGame"><span>Hele spel resetten</span><span class="arrow">&rsaquo;</span></button>') +
+  '</div>';
+}
+function wireAdminPanel(){
+  document.getElementById("back").onclick = function(){ go(null); };
+  if(view.confirming){
+    document.getElementById("resetYes").onclick = function(){
+      try{ localStorage.removeItem(KEY); }catch(e){}
+      S = null; me = null; adminAuthed = true; go(null);
+    };
+    document.getElementById("resetNo").onclick = function(){
+      view.confirming = false; render();
+    };
+    return;
+  }
+  document.getElementById("resetGame").onclick = function(){
+    view.confirming = true; render();
+  };
+}
+
+/* ---------- 1. setup ---------- */
+function setupScreen(){
+  var teamBlocks = "";
+  var TEAMS = ["Bikers","Gangsters","Maffia","Cartel"];
+  for(var i=1;i<=4;i++){
+    teamBlocks +=
+      '<div class="card">' +
+        '<h2>' + TEAMS[i-1] + '</h2>' +
+        '<label for="tn'+i+'">Teamnaam</label>' +
+        '<input type="text" id="tn'+i+'" value="' + TEAMS[i-1] + '">' +
+        '<label for="tl'+i+'">Leider</label>' +
+        '<input type="text" id="tl'+i+'" placeholder="Naam van de leider">' +
+        '<label for="tm'+i+'">Leden, één naam per regel</label>' +
+        '<textarea id="tm'+i+'" placeholder="Sam&#10;Alex&#10;Jo"></textarea>' +
+      '</div>';
+  }
+  return '' +
+  '<div class="top"><div class="brand"><img src="./SPW_DeBoomIn_Huisstijl/logos/logo.jpg" class="brand-logo" alt="Logo"><h1>Kurkenemmer</h1></div></div>' +
+  '<p class="muted">Stel je spel eenmalig in. Iedereen logt daarna op dit toestel in met een 4-cijferige code.</p>' +
+  '<div class="card sect">' +
+    '<h2>De twee bankiers</h2>' +
+    '<p class="small muted">Zij storten geld in teamkassen en halen geld uit persoonlijke rekeningen.</p>' +
+    '<label for="b1">Bankier 1</label><input type="text" id="b1" value="Veilingsmeester">' +
+    '<label for="b2">Bankier 2</label><input type="text" id="b2" value="Verzamelaar">' +
+    '<label for="unit">Hoe heet jouw geld?</label>' +
+    '<input type="text" id="unit" placeholder="kurken" value="kurken">' +
+  '</div>' +
+  '<div class="sect stack">' + teamBlocks + '</div>' +
+  '<div class="err" id="err"></div>' +
+  '<button class="btn primary" id="startBtn" style="margin-top:.6rem">Kurkenemmer aanmaken</button>';
+}
+
+function wireSetup(){
+  document.getElementById("startBtn").onclick = function(){
+    var err = document.getElementById("err");
+    function val(id){ return document.getElementById(id).value.trim(); }
+    var b1 = val("b1"), b2 = val("b2");
+    if(!b1 || !b2){ err.textContent = "Beide bankiernamen zijn verplicht."; return; }
+
+    var teams = [];
+    for(var i=1;i<=4;i++){
+      var name = val("tn"+i), lead = val("tl"+i);
+      if(!name){ err.textContent = "Team " + i + " heeft een naam nodig."; return; }
+      if(!lead){ err.textContent = name + " heeft een leider nodig."; return; }
+      var members = [{id:uid(), name:lead, pin:null, balance:0, leader:true}];
+      val("tm"+i).split("\n").forEach(function(line){
+        var n = line.trim();
+        if(n) members.push({id:uid(), name:n, pin:null, balance:0, leader:false});
+      });
+      teams.push({id:uid(), name:name, bank:0, members:members, color:TEAM_COLORS[i-1]});
+    }
+
+    S = {
+      v:1,
+      unit: val("unit") || "kurken",
+      bankers:[{id:uid(),name:b1,pin:null},{id:uid(),name:b2,pin:null}],
+      teams: teams,
+      log: [{t:Date.now(), text:"Kurkenemmer geopend", dir:""}]
+    };
+    save();
+    go(null);
+  };
+}
+
+/* ---------- 2. sign in ---------- */
+function signInScreen(){
+  var rows = everyone().map(function(p){
+    var team = p.teamId ? teamByIdRef(p.teamId) : null;
+    var dot = team ? teamDot(team.color) : "";
+    var tag = p.role === "banker" ? "Bankier"
+            : p.role === "leader" ? "Leider van " + esc(teamNameOf(p.teamId))
+            : esc(teamNameOf(p.teamId));
+    if(!p.pin) tag += " &middot; nog geen code ingesteld";
+    return '<button class="btn" data-who="'+p.id+'">' +
+             '<span>' + esc(p.name) + '<br><span class="small muted" style="display:flex;align-items:center;margin-top:.15rem">' + dot + tag + '</span></span>' +
+             '<span class="arrow">&rsaquo;</span></button>';
+  }).join("");
+  return '' +
+  '<div class="top"><div class="brand"><img src="./SPW_DeBoomIn_Huisstijl/logos/logo.jpg" class="brand-logo" alt="Logo"><h1>Kurkenemmer</h1></div>' +
+  '<button class="linkbtn" id="adminLink">Beheerder</button></div>' +
+  '<p class="muted">Wie ben jij?</p>' +
+  '<div class="stack" style="margin-top:.9rem">' + rows + '</div>';
+}
+function teamNameOf(tid){
+  var n = "";
+  S.teams.forEach(function(t){ if(t.id===tid) n = t.name; });
+  return n;
+}
+function teamByIdRef(tid){
+  var hit = null;
+  S.teams.forEach(function(t){ if(t.id===tid) hit = t; });
+  return hit;
+}
+function wireSignIn(){
+  Array.prototype.forEach.call(document.querySelectorAll("[data-who]"), function(b){
+    b.onclick = function(){
+      var p = findPerson(b.getAttribute("data-who")).obj;
+      var mode = p.pin ? "enter" : "create1";
+      go({name:"pin", who:b.getAttribute("data-who"), typed:"", mode:mode, candidate:""});
+    };
+  });
+  document.getElementById("adminLink").onclick = function(){
+    go({name:"admin-login"});
+  };
+}
+
+/* ---------- 3. pin ---------- */
+function pinScreen(){
+  var p = findPerson(view.who).obj;
+  var prompt = view.mode === "create1" ? "Kies een 4-cijferige code."
+             : view.mode === "create2" ? "Typ ze nog een keer ter bevestiging."
+             : "Voer je 4-cijferige code in.";
+  var dots = "";
+  for(var i=0;i<4;i++) dots += '<span class="dot' + (i < view.typed.length ? " on" : "") + '"></span>';
+  var keys = "";
+  ["1","2","3","4","5","6","7","8","9","","0","del"].forEach(function(k){
+    if(k === "") { keys += '<span></span>'; return; }
+    keys += '<button data-k="'+k+'">' + (k === "del" ? "&larr;" : k) + '</button>';
+  });
+  return '' +
+  '<div class="top"><button class="linkbtn" id="back">&larr; Terug</button></div>' +
+  '<h1>' + esc(p.name) + '</h1>' +
+  '<p class="muted">' + prompt + '</p>' +
+  '<div class="dots">' + dots + '</div>' +
+  '<div class="err" style="text-align:center">' + esc(flash) + '</div>' +
+  '<div class="pinpad">' + keys + '</div>';
+}
+function wirePin(){
+  document.getElementById("back").onclick = function(){ me = null; go(null); };
+  Array.prototype.forEach.call(document.querySelectorAll("[data-k]"), function(b){
+    b.onclick = function(){
+      var k = b.getAttribute("data-k");
+      if(k === "del"){ view.typed = view.typed.slice(0,-1); flash=""; render(); return; }
+      if(view.typed.length >= 4) return;
+      view.typed += k;
+      if(view.typed.length < 4){ render(); return; }
+
+      var p = findPerson(view.who).obj;
+
+      if(view.mode === "enter"){
+        if(view.typed === p.pin){ me = view.who; go(null); }
+        else { flash = "Verkeerde code."; view.typed = ""; render(); }
+        return;
+      }
+      if(view.mode === "create1"){
+        view.candidate = view.typed;
+        view.typed = "";
+        view.mode = "create2";
+        render();
+        return;
+      }
+      if(view.mode === "create2"){
+        if(view.typed === view.candidate){
+          p.pin = view.typed;
+          save();
+          me = view.who;
+          go(null);
+        } else {
+          flash = "Codes kwamen niet overeen. Probeer opnieuw.";
+          view.typed = "";
+          view.candidate = "";
+          view.mode = "create1";
+          render();
+        }
+        return;
+      }
+    };
+  });
+}
+
+/* ---------- 4. home ---------- */
+function myRole(){
+  var p = findPerson(me);
+  if(!p) return "member";
+  if(p.kind === "banker") return "banker";
+  return p.obj.leader ? "leader" : "member";
+}
+
+function homeScreen(){
+  var p = findPerson(me), role = myRole();
+  var teamStrip = S.teams.slice().sort(function(a,b){ return b.bank - a.bank; }).map(function(t){
+    var mine = p.team && p.team.id === t.id;
+    return '<div class="teamrow' + (mine ? " mine" : "") + '">' +
+             '<span class="name" style="display:flex;align-items:center">' + teamDot(t.color) + esc(t.name) + '</span>' +
+             '<span class="amt">' + money(t.bank) + '</span></div>';
+  }).join("");
+
+  var hero, actions = "";
+  if(role === "banker"){
+    hero = '<div class="card balance">' +
+             '<div class="who">' + esc(p.obj.name) + '</div>' +
+             '<div class="figure">Bankier</div>' +
+             '<div class="unit">Jij beheert de geldvoorraad</div></div>';
+    actions =
+      '<button class="btn" data-go="fund"><span>Storten op een persoonlijke rekening</span><span class="arrow">&rsaquo;</span></button>' +
+      '<button class="btn" data-go="take"><span>Geld halen van een persoonlijke rekening</span><span class="arrow">&rsaquo;</span></button>' +
+      '<button class="btn" data-go="roster"><span>Bekijk het overzicht</span><span class="arrow">&rsaquo;</span></button>';
+  } else {
+    var over = p.obj.balance > 50;
+    hero = '<div class="card balance">' +
+             '<div class="who" style="display:flex;align-items:center">' + esc(p.obj.name) + ' &middot; ' + teamDot(p.team.color) + esc(p.team.name) + '</div>' +
+             '<div class="figure">' + money(p.obj.balance) + '</div>' +
+             '<div class="unit">' + esc(unit()) + ' op je persoonlijke rekening</div>' +
+             '<span class="rolechip">' + (role === "leader" ? "Teamleider" : "Lid") + '</span>' +
+             '<p class="small" style="margin-top:.7rem;color:' + (over ? 'var(--red)' : 'var(--muted)') + '">' +
+               'De grenswacht neemt al je geld boven de 50 ' + esc(unit()) + ' in beslag.' +
+             '</p></div>';
+    actions =
+      '<button class="btn" data-go="give"><span>Storten in de kas van ' + esc(p.team.name) + '</span>' +
+      '<span class="arrow">&rsaquo;</span></button>';
+    if(role === "leader"){
+      actions +=
+        '<button class="btn" data-go="pay"><span>Een lid betalen vanuit de teamkas</span>' +
+        '<span class="arrow">&rsaquo;</span></button>';
+    }
+  }
+
+  return '' +
+  '<div class="top"><div class="brand"><img src="./SPW_DeBoomIn_Huisstijl/logos/logo.jpg" class="brand-logo" alt="Logo"><h1>Kurkenemmer</h1></div>' +
+  '<button class="linkbtn" id="out">Uitloggen</button></div>' +
+  hero +
+  '<div class="sect stack">' + actions + '</div>' +
+  '<div class="card sect"><h2>Ranglijst</h2>' + teamStrip +
+    (myRole() === "banker" ? "" :
+      '<p class="small muted" style="margin-top:.7rem">Enkel geld in de teamkas telt, persoonlijk geld niet.</p>') +
+  '</div>' +
+  '<div class="sect"><button class="btn quiet center" data-go="ledger">Recente activiteit</button></div>';
+}
+
+function wireHome(){
+  document.getElementById("out").onclick = function(){ me = null; go(null); };
+  Array.prototype.forEach.call(document.querySelectorAll("[data-go]"), function(b){
+    b.onclick = function(){
+      var g = b.getAttribute("data-go");
+      if(g === "ledger" || g === "roster") go({name:g});
+      else go({name:"move", kind:g});
+    };
+  });
+}
+
+/* ---------- 5. move money ---------- */
+function moveScreen(){
+  var kind = view.kind, p = findPerson(me);
+  var title, help, picker = "", cap = null, capLabel = "";
+
+  if(kind === "fund"){
+    title = "Storten op een persoonlijke rekening";
+    help = "Dit voegt nieuw geld toe aan het spel.";
+    var opts1 = "";
+    S.teams.forEach(function(t){
+      t.members.forEach(function(m){
+        opts1 += '<option value="'+m.id+'">'+esc(m.name)+' ('+esc(t.name)+') &middot; '+money(m.balance)+'</option>';
+      });
+    });
+    picker = '<label for="target">Persoon</label><select id="target">' + opts1 + '</select>';
+  }
+  if(kind === "take"){
+    title = "Geld halen van een persoonlijke rekening";
+    help = "Dit haalt geld uit het spel.";
+    var opts = "";
+    S.teams.forEach(function(t){
+      t.members.forEach(function(m){
+        opts += '<option value="'+m.id+'">'+esc(m.name)+' ('+esc(t.name)+') &middot; '+money(m.balance)+'</option>';
+      });
+    });
+    picker = '<label for="target">Persoon</label><select id="target">' + opts + '</select>';
+  }
+  if(kind === "give"){
+    title = "Storten in de kas van " + p.team.name;
+    help = "Eenmaal gestort kan alleen je leider het weer uitgeven.";
+    cap = p.obj.balance; capLabel = "Je hebt " + money(cap) + " " + unit() + ".";
+  }
+  if(kind === "pay"){
+    title = "Een lid betalen";
+    help = "Het geld komt uit de kas van " + p.team.name + ".";
+    picker = '<label for="target">Lid</label><select id="target">' +
+      p.team.members.map(function(m){
+        return '<option value="'+m.id+'">'+esc(m.name)+(m.leader?" (jij)":"")+' &middot; '+money(m.balance)+'</option>';
+      }).join("") + '</select>';
+    cap = p.team.bank; capLabel = "De teamkas bevat " + money(cap) + " " + unit() + ".";
+  }
+
+  return '' +
+  '<div class="top"><button class="linkbtn" id="back">&larr; Terug</button></div>' +
+  '<h1>' + esc(title) + '</h1>' +
+  '<p class="muted small">' + esc(help) + '</p>' +
+  '<div class="card" style="margin-top:1rem">' +
+    picker +
+    '<label for="amt">Bedrag in ' + esc(unit()) + '</label>' +
+    '<input type="tel" inputmode="numeric" id="amt" class="amount-in" placeholder="0">' +
+    (capLabel ? '<p class="small muted">' + esc(capLabel) + '</p>' : '') +
+  '</div>' +
+  '<div class="err" id="err">' + esc(flash) + '</div>' +
+  '<button class="btn primary" id="doIt" style="margin-top:.6rem">Bevestigen</button>';
+}
+
+function wireMove(){
+  document.getElementById("back").onclick = function(){ go(null); };
+  var amtEl = document.getElementById("amt");
+  amtEl.focus();
+  document.getElementById("doIt").onclick = function(){
+    var err = document.getElementById("err");
+    var n = amountFrom(amtEl.value);
+    if(n === null){ err.textContent = "Voer een heel getal groter dan nul in."; return; }
+    var kind = view.kind, p = findPerson(me);
+    var tEl = document.getElementById("target");
+    var targetId = tEl ? tEl.value : null;
+
+    if(kind === "fund"){
+      if(myRole() !== "banker"){ err.textContent = "Alleen een bankier kan dit doen."; return; }
+      var recip = findPerson(targetId);
+      recip.obj.balance += n;
+      logIt(p.obj.name + " stortte " + money(n) + " op de rekening van " + recip.obj.name, "up");
+    }
+    else if(kind === "take"){
+      if(myRole() !== "banker"){ err.textContent = "Alleen een bankier kan dit doen."; return; }
+      var hit = findPerson(targetId);
+      if(hit.obj.balance < n){ err.textContent = hit.obj.name + " heeft maar " + money(hit.obj.balance) + "."; return; }
+      hit.obj.balance -= n;
+      logIt(p.obj.name + " haalde " + money(n) + " weg bij " + hit.obj.name, "down");
+    }
+    else if(kind === "give"){
+      if(p.kind !== "member"){ err.textContent = "Bankiers hebben geen persoonlijke rekening."; return; }
+      if(p.obj.balance < n){ err.textContent = "Je hebt maar " + money(p.obj.balance) + "."; return; }
+      p.obj.balance -= n; p.team.bank += n;
+      logIt(p.obj.name + " stortte " + money(n) + " in de kas van " + p.team.name, "up");
+    }
+    else if(kind === "pay"){
+      if(myRole() !== "leader"){ err.textContent = "Alleen de teamleider kan dit doen."; return; }
+      var mem = null; p.team.members.forEach(function(m){ if(m.id===targetId) mem = m; });
+      if(!mem){ err.textContent = "Die persoon zit niet in jouw team."; return; }
+      if(p.team.bank < n){ err.textContent = "De teamkas bevat maar " + money(p.team.bank) + "."; return; }
+      p.team.bank -= n; mem.balance += n;
+      logIt(p.obj.name + " betaalde " + mem.name + " " + money(n) + " uit de kas van " + p.team.name, "down");
+    }
+
+    save();
+    go(null);
+  };
+  amtEl.onkeydown = function(e){ if(e.key === "Enter") document.getElementById("doIt").click(); };
+}
+
+/* ---------- 6. ledger ---------- */
+function ledgerScreen(){
+  var rows = S.log.map(function(e){
+    var d = new Date(e.t);
+    return '<div class="entry ' + e.dir + '"><span class="tick"></span><span>' + esc(e.text) +
+           '<time>' + d.toLocaleString() + '</time></span></div>';
+  }).join("");
+  return '' +
+  '<div class="top"><button class="linkbtn" id="back">&larr; Terug</button></div>' +
+  '<h1>Recente activiteit</h1>' +
+  '<div class="card" style="margin-top:1rem">' + (rows || '<p class="muted">Er is nog niets gebeurd.</p>') + '</div>';
+}
+
+/* ---------- 7. roster (bankers only) ---------- */
+function rosterScreen(){
+  var blocks = '<div class="card"><h2>Bankiers</h2>' +
+    S.bankers.map(function(b){
+      return '<div class="rosterline"><span>' + esc(b.name) + '</span><span class="small ' +
+             (b.pin ? 'muted">Code ingesteld' : 'pin">Nog geen code') + '</span></div>';
+    }).join("") + '</div>';
+
+  S.teams.forEach(function(t){
+    blocks += '<div class="card"><h2 style="display:flex;align-items:center">' + teamDot(t.color) + esc(t.name) + '</h2>' +
+      '<div class="rosterline"><span class="muted">Teamkas</span><span class="amt">' + money(t.bank) + '</span></div>' +
+      t.members.map(function(m){
+        return '<div class="rosterline"><span>' + esc(m.name) + (m.leader ? ' <span class="small muted">leider</span>' : '') +
+               '<br><span class="small muted">' + money(m.balance) + ' ' + esc(unit()) + '</span></span>' +
+               '<span class="small ' + (m.pin ? 'muted">Code ingesteld' : 'pin">Nog geen code') + '</span></div>';
+      }).join("") + '</div>';
+  });
+
+  return '' +
+  '<div class="top"><button class="linkbtn" id="back">&larr; Terug</button></div>' +
+  '<h1>Overzicht</h1><p class="muted small">Codes zijn privé &mdash; iedereen stelt de eigen code in bij de eerste keer inloggen.</p>' +
+  '<div class="stack sect">' + blocks + '</div>';
+}
+
+function wireBack(){
+  document.getElementById("back").onclick = function(){ go(null); };
+}
+
+render();
+</script>
+</body>
+</html>

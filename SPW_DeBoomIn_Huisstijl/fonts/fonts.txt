@@ -1,0 +1,12 @@
+Title:
+Junegull ExtraBold | fontsize 36
+
+Subtitle:
+AustinText-RomanNo2 | fontsize 31.5
+
+Heading:
+AustinText-RomanNo2 | fontsize 24.8
+
+body
+AustinText-RomanNo2 | fontsize 12
+
