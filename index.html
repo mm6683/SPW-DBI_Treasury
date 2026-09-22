@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Kurkenemmer</title>
+<link rel="icon" href="./SPW_DeBoomIn_Huisstijl/logos/Stempels3cm.jpg.jpg" type="image/jpeg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -181,6 +182,9 @@ var ADMIN_PASSWORD = "placeholder";
 
 /* Slot order matches the four preset teams: Bikers, Gangsters, Maffia, Cartel. */
 var TEAM_COLORS = ["#3A3A3E", "#3E9C5C", "#C0392B", "#8E5CC7"];
+var GRENSWACHT_COLOR = "#f05555";
+/* Anyone with more than this on their personal account can be picked clean by Grenswacht. */
+var CONFISCATE_THRESHOLD = 50;
 
 /* ---------- helpers ---------- */
 function uid(){ return Math.random().toString(36).slice(2,9); }
@@ -196,6 +200,7 @@ function teamDot(color){
 function everyone(){
   var list = [];
   S.bankers.forEach(function(b){ list.push({id:b.id,name:b.name,pin:b.pin,role:"banker"}); });
+  if(S.grenswacht) S.grenswacht.members.forEach(function(m){ list.push({id:m.id,name:m.name,pin:m.pin,role:"grenswacht"}); });
   S.teams.forEach(function(t){
     t.members.forEach(function(m){
       list.push({id:m.id,name:m.name,pin:m.pin,role:m.leader?"leader":"member",teamId:t.id});
@@ -206,9 +211,63 @@ function everyone(){
 function findPerson(id){
   var hit = null;
   S.bankers.forEach(function(b){ if(b.id===id) hit = {kind:"banker",obj:b}; });
+  if(S.grenswacht) S.grenswacht.members.forEach(function(m){
+    if(m.id===id) hit = {kind:"grenswacht",obj:m,group:S.grenswacht}; });
   S.teams.forEach(function(t){ t.members.forEach(function(m){
     if(m.id===id) hit = {kind:"member",obj:m,team:t}; }); });
   return hit;
+}
+/* Keeps older saved games (from before Grenswacht existed) working. */
+function normalizeState(){
+  if(!S) return;
+  if(!S.grenswacht) S.grenswacht = {id:uid(), name:"Grenswacht", bank:0, members:[]};
+}
+/* Moves a person to a different group (Bankier / Grenswacht / a team), keeping their
+   id, name and pin. A team member's personal balance moves with them into another team;
+   moving into a balance-less group (Bankier/Grenswacht) deposits it into their old team's
+   kas first, so kurken never just vanish. Returns null on success, or an error string. */
+function movePersonToGroup(personId, destVal){
+  var src = findPerson(personId);
+  if(!src) return "Persoon niet gevonden.";
+
+  var destKind = destVal === "banker" ? "banker" : destVal === "grenswacht" ? "grenswacht" : "team";
+  var destTeam = destKind === "team" ? teamByIdRef(destVal) : null;
+  if(destKind === "team" && !destTeam) return "Team niet gevonden.";
+
+  if(src.kind === "banker" && destKind === "banker") return "Zit al bij de bankiers.";
+  if(src.kind === "grenswacht" && destKind === "grenswacht") return "Zit al bij de Grenswacht.";
+  if(src.kind === "member" && destKind === "team" && src.team.id === destVal) return "Zit al in dat team.";
+
+  var name = src.obj.name, pin = src.obj.pin;
+  var fromLabel = src.kind === "banker" ? "Bankier" : src.kind === "grenswacht" ? "Grenswacht" : src.team.name;
+  var leftover = 0;
+
+  if(src.kind === "banker"){
+    S.bankers = S.bankers.filter(function(b){ return b.id !== personId; });
+  } else if(src.kind === "grenswacht"){
+    S.grenswacht.members = S.grenswacht.members.filter(function(m){ return m.id !== personId; });
+  } else {
+    if(destKind !== "team") leftover = src.obj.balance || 0;
+    src.team.members = src.team.members.filter(function(m){ return m.id !== personId; });
+    if(leftover > 0) src.team.bank += leftover;
+  }
+
+  var toLabel;
+  if(destKind === "banker"){
+    S.bankers.push({id:personId, name:name, pin:pin});
+    toLabel = "Bankier";
+  } else if(destKind === "grenswacht"){
+    S.grenswacht.members.push({id:personId, name:name, pin:pin});
+    toLabel = "Grenswacht";
+  } else {
+    var startBalance = src.kind === "member" ? (src.obj.balance || 0) : 0;
+    destTeam.members.push({id:personId, name:name, pin:pin, balance:startBalance, leader:false});
+    toLabel = destTeam.name;
+  }
+
+  logIt(name + " verhuisde van " + fromLabel + " naar " + toLabel +
+    (leftover > 0 ? " (resterend saldo van " + money(leftover) + " ging naar de kas van " + fromLabel + ")" : ""), "");
+  return null;
 }
 function teamOf(id){ var p = findPerson(id); return p && p.team ? p.team : null; }
 function logIt(text, dir){
@@ -261,6 +320,7 @@ function render(){
   else if(view && view.name === "ledger"){ html = ledgerScreen(); wire = wireBack; }
   else if(view && view.name === "roster"){ html = rosterScreen(); wire = wireBack; }
   else if(view && view.name === "move"){ html = moveScreen(); wire = wireMove; }
+  else if(view && view.name === "confiscate"){ html = confiscateScreen(); wire = wireConfiscate; }
   else { html = homeScreen(); wire = wireHome; }
 
   app.innerHTML = html;
@@ -339,6 +399,39 @@ function wireAdminLogin(){
 
 function adminPanelScreen(){
   var confirming = view.confirming;
+
+  var extra = "";
+  if(S && !confirming){
+    var moveWhoOpts = everyone().map(function(p){
+      var groupLabel = p.role === "banker" ? "Bankier" : p.role === "grenswacht" ? "Grenswacht" : teamNameOf(p.teamId);
+      return '<option value="'+p.id+'">'+esc(p.name)+' ('+esc(groupLabel)+')</option>';
+    }).join("");
+    var moveToOpts = '<option value="banker">Bankier</option><option value="grenswacht">Grenswacht</option>' +
+      S.teams.map(function(t){ return '<option value="'+t.id+'">'+esc(t.name)+'</option>'; }).join("");
+
+    var pinRows = everyone().map(function(p){
+      var groupLabel = p.role === "banker" ? "Bankier" : p.role === "grenswacht" ? "Grenswacht"
+                      : (p.role === "leader" ? "Leider &middot; " : "") + esc(teamNameOf(p.teamId));
+      return '<div class="rosterline"><span>' + esc(p.name) +
+        '<br><span class="small muted">' + groupLabel + ' &middot; ' + (p.pin ? 'code ingesteld' : 'nog geen code') + '</span></span>' +
+        '<button class="btn" style="width:auto;padding:.5rem .8rem" data-resetpin="' + p.id + '">Reset</button></div>';
+    }).join("");
+
+    extra = '' +
+    '<div class="card sect"><h2>Iemand verplaatsen</h2>' +
+      '<p class="small muted">Verplaats iemand naar een andere groep of team. Persoonlijk geld verhuist mee naar een ander team; ' +
+        'gaat de persoon naar Bankier of Grenswacht, dan komt het resterende saldo in de kas van het oude team.</p>' +
+      '<label for="moveWho">Persoon</label><select id="moveWho">' + moveWhoOpts + '</select>' +
+      '<label for="moveTo">Naar</label><select id="moveTo">' + moveToOpts + '</select>' +
+      '<div class="err" id="moveErr"></div>' +
+      '<button class="btn primary" id="moveBtn" style="margin-top:.6rem">Verplaatsen</button>' +
+    '</div>' +
+    '<div class="card sect"><h2>Codes resetten</h2>' +
+      '<p class="small muted">Wist de code van iemand zodat die bij de volgende inlog een nieuwe kiest.</p>' +
+      '<div class="stack">' + pinRows + '</div>' +
+    '</div>';
+  }
+
   return '' +
   '<div class="top"><button class="linkbtn" id="back">&larr; Terug</button></div>' +
   '<h1>Beheerder</h1>' +
@@ -351,7 +444,8 @@ function adminPanelScreen(){
           '<button class="btn quiet" id="resetNo" style="margin-top:.5rem">Annuleren</button>' +
         '</div>'
       : '<button class="btn" id="resetGame"><span>Hele spel resetten</span><span class="arrow">&rsaquo;</span></button>') +
-  '</div>';
+  '</div>' +
+  extra;
 }
 function wireAdminPanel(){
   document.getElementById("back").onclick = function(){ go(null); };
@@ -368,6 +462,31 @@ function wireAdminPanel(){
   document.getElementById("resetGame").onclick = function(){
     view.confirming = true; render();
   };
+
+  if(!S) return;
+
+  Array.prototype.forEach.call(document.querySelectorAll("[data-resetpin]"), function(b){
+    b.onclick = function(){
+      var hit = findPerson(b.getAttribute("data-resetpin"));
+      if(!hit) return;
+      if(!confirm("Code van " + hit.obj.name + " resetten?")) return;
+      hit.obj.pin = null;
+      save();
+      render();
+    };
+  });
+
+  var moveBtn = document.getElementById("moveBtn");
+  if(moveBtn){
+    moveBtn.onclick = function(){
+      var whoId = document.getElementById("moveWho").value;
+      var toVal = document.getElementById("moveTo").value;
+      var errMsg = movePersonToGroup(whoId, toVal);
+      if(errMsg){ document.getElementById("moveErr").textContent = errMsg; return; }
+      save();
+      render();
+    };
+  }
 }
 
 /* ---------- 1. setup ---------- */
@@ -397,6 +516,12 @@ function setupScreen(){
     '<label for="unit">Hoe heet jouw geld?</label>' +
     '<input type="text" id="unit" placeholder="kurken" value="kurken">' +
   '</div>' +
+  '<div class="card sect">' +
+    '<h2>Grenswacht</h2>' +
+    '<p class="small muted">Zij innen kurken boven de ' + CONFISCATE_THRESHOLD + ' en storten/halen net als de bankiers &mdash; het overschot gaat in hun eigen teamkas.</p>' +
+    '<label for="gw">Leden, één naam per regel</label>' +
+    '<textarea id="gw" placeholder="Robin&#10;Charlie"></textarea>' +
+  '</div>' +
   '<div class="sect stack">' + teamBlocks + '</div>' +
   '<div class="err" id="err"></div>' +
   '<button class="btn primary" id="startBtn" style="margin-top:.6rem">Kurkenemmer aanmaken</button>';
@@ -408,6 +533,13 @@ function wireSetup(){
     function val(id){ return document.getElementById(id).value.trim(); }
     var b1 = val("b1"), b2 = val("b2");
     if(!b1 || !b2){ err.textContent = "Beide bankiernamen zijn verplicht."; return; }
+
+    var gwMembers = [];
+    val("gw").split("\n").forEach(function(line){
+      var n = line.trim();
+      if(n) gwMembers.push({id:uid(), name:n, pin:null});
+    });
+    if(gwMembers.length === 0){ err.textContent = "Grenswacht heeft minstens één lid nodig."; return; }
 
     var teams = [];
     for(var i=1;i<=4;i++){
@@ -423,9 +555,10 @@ function wireSetup(){
     }
 
     S = {
-      v:1,
+      v:2,
       unit: val("unit") || "kurken",
       bankers:[{id:uid(),name:b1,pin:null},{id:uid(),name:b2,pin:null}],
+      grenswacht: {id:uid(), name:"Grenswacht", bank:0, members:gwMembers},
       teams: teams,
       log: [{t:Date.now(), text:"Kurkenemmer geopend", dir:""}]
     };
@@ -440,6 +573,7 @@ function signInScreen(){
     var team = p.teamId ? teamByIdRef(p.teamId) : null;
     var dot = team ? teamDot(team.color) : "";
     var tag = p.role === "banker" ? "Bankier"
+            : p.role === "grenswacht" ? "Grenswacht"
             : p.role === "leader" ? "Leider van " + esc(teamNameOf(p.teamId))
             : esc(teamNameOf(p.teamId));
     if(!p.pin) tag += " &middot; nog geen code ingesteld";
@@ -545,37 +679,50 @@ function myRole(){
   var p = findPerson(me);
   if(!p) return "member";
   if(p.kind === "banker") return "banker";
+  if(p.kind === "grenswacht") return "grenswacht";
   return p.obj.leader ? "leader" : "member";
 }
 
 function homeScreen(){
   var p = findPerson(me), role = myRole();
-  var teamStrip = S.teams.slice().sort(function(a,b){ return b.bank - a.bank; }).map(function(t){
-    var mine = p.team && p.team.id === t.id;
+  var boards = S.teams.map(function(t){
+    return {id:t.id, name:t.name, bank:t.bank, color:t.color, grenswacht:false};
+  });
+  if(S.grenswacht) boards.push({id:S.grenswacht.id, name:S.grenswacht.name, bank:S.grenswacht.bank, color:GRENSWACHT_COLOR, grenswacht:true});
+  var teamStrip = boards.sort(function(a,b){ return b.bank - a.bank; }).map(function(t){
+    var mine = (p.team && p.team.id === t.id) || (role === "grenswacht" && t.grenswacht);
     return '<div class="teamrow' + (mine ? " mine" : "") + '">' +
-             '<span class="name" style="display:flex;align-items:center">' + teamDot(t.color) + esc(t.name) + '</span>' +
+             '<span class="name" style="display:flex;align-items:center">' + teamDot(t.color) + esc(t.name) +
+               (t.grenswacht ? ' <span class="small muted" style="margin-left:.3rem">(inbeslagnames)</span>' : '') + '</span>' +
              '<span class="amt">' + money(t.bank) + '</span></div>';
   }).join("");
 
   var hero, actions = "";
-  if(role === "banker"){
+  if(role === "banker" || role === "grenswacht"){
+    var label = role === "banker" ? "Bankier" : "Grenswacht";
+    var sub = role === "banker" ? "Jij beheert de geldvoorraad" : "Jij int kurken boven de " + CONFISCATE_THRESHOLD;
     hero = '<div class="card balance">' +
              '<div class="who">' + esc(p.obj.name) + '</div>' +
-             '<div class="figure">Bankier</div>' +
-             '<div class="unit">Jij beheert de geldvoorraad</div></div>';
+             '<div class="figure">' + label + '</div>' +
+             '<div class="unit">' + sub + '</div>' +
+             (role === "grenswacht" ? '<p class="small muted" style="margin-top:.6rem">Grenswachtkas: ' + money(S.grenswacht.bank) + ' ' + esc(unit()) + '</p>' : '') +
+           '</div>';
     actions =
       '<button class="btn" data-go="fund"><span>Storten op een persoonlijke rekening</span><span class="arrow">&rsaquo;</span></button>' +
-      '<button class="btn" data-go="take"><span>Geld halen van een persoonlijke rekening</span><span class="arrow">&rsaquo;</span></button>' +
-      '<button class="btn" data-go="roster"><span>Bekijk het overzicht</span><span class="arrow">&rsaquo;</span></button>';
+      '<button class="btn" data-go="take"><span>Geld halen van een persoonlijke rekening</span><span class="arrow">&rsaquo;</span></button>';
+    if(role === "grenswacht"){
+      actions += '<button class="btn" data-go="confiscate"><span>Kurken boven de ' + CONFISCATE_THRESHOLD + ' innemen</span><span class="arrow">&rsaquo;</span></button>';
+    }
+    actions += '<button class="btn" data-go="roster"><span>Bekijk het overzicht</span><span class="arrow">&rsaquo;</span></button>';
   } else {
-    var over = p.obj.balance > 50;
+    var over = p.obj.balance > CONFISCATE_THRESHOLD;
     hero = '<div class="card balance">' +
              '<div class="who" style="display:flex;align-items:center">' + esc(p.obj.name) + ' &middot; ' + teamDot(p.team.color) + esc(p.team.name) + '</div>' +
              '<div class="figure">' + money(p.obj.balance) + '</div>' +
              '<div class="unit">' + esc(unit()) + ' op je persoonlijke rekening</div>' +
              '<span class="rolechip">' + (role === "leader" ? "Teamleider" : "Lid") + '</span>' +
              '<p class="small" style="margin-top:.7rem;color:' + (over ? 'var(--red)' : 'var(--muted)') + '">' +
-               'De grenswacht neemt al je geld boven de 50 ' + esc(unit()) + ' in beslag.' +
+               'De grenswacht neemt al je geld boven de ' + CONFISCATE_THRESHOLD + ' ' + esc(unit()) + ' in beslag.' +
              '</p></div>';
     actions =
       '<button class="btn" data-go="give"><span>Storten in de kas van ' + esc(p.team.name) + '</span>' +
@@ -585,6 +732,9 @@ function homeScreen(){
         '<button class="btn" data-go="pay"><span>Een lid betalen vanuit de teamkas</span>' +
         '<span class="arrow">&rsaquo;</span></button>';
     }
+    actions +=
+      '<button class="btn" data-go="send"><span>Geld sturen naar iemand anders</span>' +
+      '<span class="arrow">&rsaquo;</span></button>';
   }
 
   return '' +
@@ -593,7 +743,7 @@ function homeScreen(){
   hero +
   '<div class="sect stack">' + actions + '</div>' +
   '<div class="card sect"><h2>Ranglijst</h2>' + teamStrip +
-    (myRole() === "banker" ? "" :
+    (role === "banker" || role === "grenswacht" ? "" :
       '<p class="small muted" style="margin-top:.7rem">Enkel geld in de teamkas telt, persoonlijk geld niet.</p>') +
   '</div>' +
   '<div class="sect"><button class="btn quiet center" data-go="ledger">Recente activiteit</button></div>';
@@ -604,7 +754,7 @@ function wireHome(){
   Array.prototype.forEach.call(document.querySelectorAll("[data-go]"), function(b){
     b.onclick = function(){
       var g = b.getAttribute("data-go");
-      if(g === "ledger" || g === "roster") go({name:g});
+      if(g === "ledger" || g === "roster" || g === "confiscate") go({name:g});
       else go({name:"move", kind:g});
     };
   });
@@ -651,6 +801,27 @@ function moveScreen(){
       }).join("") + '</select>';
     cap = p.team.bank; capLabel = "De teamkas bevat " + money(cap) + " " + unit() + ".";
   }
+  if(kind === "send"){
+    title = "Geld sturen";
+    help = "Stuur geld van je eigen rekening naar iemand anders of een teamkas.";
+    var peopleOpts = "";
+    S.teams.forEach(function(t){
+      t.members.forEach(function(m){
+        if(m.id === me) return;
+        peopleOpts += '<option value="person:'+m.id+'">'+esc(m.name)+' ('+esc(t.name)+') &middot; '+money(m.balance)+'</option>';
+      });
+    });
+    var kasOpts = "";
+    S.teams.forEach(function(t){
+      kasOpts += '<option value="team:'+t.id+'">'+esc(t.name)+' &middot; '+money(t.bank)+'</option>';
+    });
+    if(S.grenswacht) kasOpts += '<option value="grenswacht">Grenswacht &middot; '+money(S.grenswacht.bank)+'</option>';
+    picker = '<label for="target">Naar</label><select id="target">' +
+      '<optgroup label="Personen">' + peopleOpts + '</optgroup>' +
+      '<optgroup label="Teamkassen">' + kasOpts + '</optgroup>' +
+    '</select>';
+    cap = p.obj.balance; capLabel = "Je hebt " + money(cap) + " " + unit() + ".";
+  }
 
   return '' +
   '<div class="top"><button class="linkbtn" id="back">&larr; Terug</button></div>' +
@@ -679,13 +850,13 @@ function wireMove(){
     var targetId = tEl ? tEl.value : null;
 
     if(kind === "fund"){
-      if(myRole() !== "banker"){ err.textContent = "Alleen een bankier kan dit doen."; return; }
+      if(myRole() !== "banker" && myRole() !== "grenswacht"){ err.textContent = "Alleen een bankier of de Grenswacht kan dit doen."; return; }
       var recip = findPerson(targetId);
       recip.obj.balance += n;
       logIt(p.obj.name + " stortte " + money(n) + " op de rekening van " + recip.obj.name, "up");
     }
     else if(kind === "take"){
-      if(myRole() !== "banker"){ err.textContent = "Alleen een bankier kan dit doen."; return; }
+      if(myRole() !== "banker" && myRole() !== "grenswacht"){ err.textContent = "Alleen een bankier of de Grenswacht kan dit doen."; return; }
       var hit = findPerson(targetId);
       if(hit.obj.balance < n){ err.textContent = hit.obj.name + " heeft maar " + money(hit.obj.balance) + "."; return; }
       hit.obj.balance -= n;
@@ -705,11 +876,70 @@ function wireMove(){
       p.team.bank -= n; mem.balance += n;
       logIt(p.obj.name + " betaalde " + mem.name + " " + money(n) + " uit de kas van " + p.team.name, "down");
     }
+    else if(kind === "send"){
+      if(p.kind !== "member"){ err.textContent = "Alleen leden met een persoonlijke rekening kunnen geld sturen."; return; }
+      if(p.obj.balance < n){ err.textContent = "Je hebt maar " + money(p.obj.balance) + "."; return; }
+      var val = tEl.value;
+      if(val.indexOf("person:") === 0){
+        var recip2 = findPerson(val.slice(7));
+        if(!recip2 || recip2.kind !== "member"){ err.textContent = "Ontvanger niet gevonden."; return; }
+        p.obj.balance -= n; recip2.obj.balance += n;
+        logIt(p.obj.name + " stuurde " + money(n) + " naar " + recip2.obj.name, "down");
+      } else if(val.indexOf("team:") === 0){
+        var destTeam2 = teamByIdRef(val.slice(5));
+        if(!destTeam2){ err.textContent = "Team niet gevonden."; return; }
+        p.obj.balance -= n; destTeam2.bank += n;
+        logIt(p.obj.name + " stuurde " + money(n) + " naar de kas van " + destTeam2.name, "down");
+      } else if(val === "grenswacht" && S.grenswacht){
+        p.obj.balance -= n; S.grenswacht.bank += n;
+        logIt(p.obj.name + " stuurde " + money(n) + " naar de kas van Grenswacht", "down");
+      } else {
+        err.textContent = "Kies een ontvanger."; return;
+      }
+    }
 
     save();
     go(null);
   };
   amtEl.onkeydown = function(e){ if(e.key === "Enter") document.getElementById("doIt").click(); };
+}
+
+/* ---------- 5b. Grenswacht: confiscate above the threshold ---------- */
+function confiscateScreen(){
+  var rows = "", any = false;
+  S.teams.forEach(function(t){
+    t.members.forEach(function(m){
+      if(m.balance > CONFISCATE_THRESHOLD){
+        any = true;
+        var take = m.balance - CONFISCATE_THRESHOLD;
+        rows += '<div class="rosterline"><span>' + esc(m.name) + ' <span class="small muted">(' + esc(t.name) + ')</span>' +
+          '<br><span class="small muted">heeft ' + money(m.balance) + ' ' + esc(unit()) + '</span></span>' +
+          '<button class="btn" style="width:auto;padding:.5rem .8rem" data-take="' + m.id + '">Neem ' + money(take) + '</button></div>';
+      }
+    });
+  });
+  return '' +
+  '<div class="top"><button class="linkbtn" id="back">&larr; Terug</button></div>' +
+  '<h1>Kurken boven de ' + CONFISCATE_THRESHOLD + ' innemen</h1>' +
+  '<p class="muted small">Het overschot boven ' + CONFISCATE_THRESHOLD + ' ' + esc(unit()) + ' gaat naar de Grenswachtkas.</p>' +
+  '<div class="card" style="margin-top:1rem">' +
+    (any ? rows : '<p class="muted">Niemand heeft op dit moment meer dan ' + CONFISCATE_THRESHOLD + ' ' + esc(unit()) + '.</p>') +
+  '</div>';
+}
+function wireConfiscate(){
+  document.getElementById("back").onclick = function(){ go(null); };
+  Array.prototype.forEach.call(document.querySelectorAll("[data-take]"), function(b){
+    b.onclick = function(){
+      var hit = findPerson(b.getAttribute("data-take"));
+      if(!hit || hit.kind !== "member" || hit.obj.balance <= CONFISCATE_THRESHOLD) return;
+      var take = hit.obj.balance - CONFISCATE_THRESHOLD;
+      hit.obj.balance = CONFISCATE_THRESHOLD;
+      S.grenswacht.bank += take;
+      logIt("Grenswacht nam " + money(take) + " in bij " + hit.obj.name, "down");
+      save();
+      go({name:"confiscate"});
+    };
+  });
 }
 
 /* ---------- 6. ledger ---------- */
@@ -732,6 +962,15 @@ function rosterScreen(){
       return '<div class="rosterline"><span>' + esc(b.name) + '</span><span class="small ' +
              (b.pin ? 'muted">Code ingesteld' : 'pin">Nog geen code') + '</span></div>';
     }).join("") + '</div>';
+
+  if(S.grenswacht){
+    blocks += '<div class="card"><h2 style="display:flex;align-items:center">' + teamDot(GRENSWACHT_COLOR) + 'Grenswacht</h2>' +
+      '<div class="rosterline"><span class="muted">Grenswachtkas</span><span class="amt">' + money(S.grenswacht.bank) + '</span></div>' +
+      S.grenswacht.members.map(function(m){
+        return '<div class="rosterline"><span>' + esc(m.name) + '</span><span class="small ' +
+               (m.pin ? 'muted">Code ingesteld' : 'pin">Nog geen code') + '</span></div>';
+      }).join("") + '</div>';
+  }
 
   S.teams.forEach(function(t){
     blocks += '<div class="card"><h2 style="display:flex;align-items:center">' + teamDot(t.color) + esc(t.name) + '</h2>' +
@@ -756,6 +995,7 @@ function wireBack(){
 gameDocRef.onSnapshot(function(snap){
   dbError = null;
   S = snap.exists ? snap.data() : null;
+  normalizeState();
   render();
 }, function(err){
   dbError = (err && err.message) ? err.message : String(err);

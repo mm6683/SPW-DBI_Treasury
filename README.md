@@ -9,11 +9,34 @@ shared Firestore document, so every device sees updates live.
 ```
 index.html                     the whole app (HTML + CSS + JS, no build step)
 SPW_DeBoomIn_Huisstijl/         brand assets used by the app
-  ├─ logos/                     logo image
+  ├─ logos/                     logo image, incl. Stempels3cm.jpg.jpg (site favicon)
   ├─ graphics/                  background + banner images
   ├─ fonts/                     Junegull + AustinText font files
   └─ color_palette.txt          brand colors reference
 ```
+
+## Roles & groups
+
+- **Bankiers** — two fixed people who can fund/take on anyone's personal account
+  and view the full roster.
+- **Grenswacht** — a group (any number of members) with the same fund/take/roster
+  powers as bankiers, plus a "Kurken boven de 50 innemen" screen: pick anyone with
+  more than the threshold (default 50 kurken) on their personal account, and the
+  excess is clipped straight into the Grenswacht teamkas. Their teamkas also shows
+  up on the leaderboard alongside the four teams.
+- **Teams** — a leider + members, each with a personal balance and a shared teamkas.
+  Members can deposit into their own teamkas, and (new) send kurken directly to any
+  other person or to any teamkas, not just their own.
+
+## Admin panel extras
+
+Alongside the full game reset, the admin panel now has:
+- **Codes resetten** — clear one specific person's PIN (they'll set a new one next
+  time they sign in) without touching anyone else's.
+- **Iemand verplaatsen** — move any person between groups (a team, Bankiers, or
+  Grenswacht). Moving between two teams carries their personal balance with them;
+  moving into a balance-less group (Bankiers/Grenswacht) deposits their leftover
+  balance into their old team's kas first, so kurken are never silently lost.
 
 ## One-time setup: connect Firebase (free)
 
