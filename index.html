@@ -176,8 +176,11 @@ var view = null;         // current screen
 var me = null;           // who is signed in
 var flash = "";
 var adminAuthed = false; // resets every page load, on purpose
+var pendingAdminPassword = null; // a new password chosen before the game (S) exists yet
 
-/* Change this to your own password. */
+/* Default admin password. Stays "placeholder" in the source on purpose — the app itself
+   nudges whoever logs in with it to pick a real one, which is then stored in S.adminPassword
+   and takes over as the effective password from then on. */
 var ADMIN_PASSWORD = "placeholder";
 
 /* Slot order matches the four preset teams: Bikers, Gangsters, Maffia, Cartel. */
@@ -192,6 +195,7 @@ function esc(s){ return String(s).replace(/[&<>"']/g, function(c){
   return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
 function money(n){ return Number(n).toLocaleString(); }
 function unit(){ return S && S.unit ? S.unit : "kurken"; }
+function effectiveAdminPassword(){ return (S && S.adminPassword) ? S.adminPassword : ADMIN_PASSWORD; }
 function teamDot(color){
   return '<span style="display:inline-block;width:.6rem;height:.6rem;border-radius:50%;' +
          'background:' + color + ';margin-right:.4rem;flex:none"></span>';
@@ -223,9 +227,9 @@ function normalizeState(){
   if(!S.grenswacht) S.grenswacht = {id:uid(), name:"Grenswacht", bank:0, members:[]};
 }
 /* Moves a person to a different group (Bankier / Grenswacht / a team), keeping their
-   id, name and pin. A team member's personal balance moves with them into another team;
-   moving into a balance-less group (Bankier/Grenswacht) deposits it into their old team's
-   kas first, so kurken never just vanish. Returns null on success, or an error string. */
+   id, name, pin and personal balance. The balance always stays attached to the person —
+   while they're Bankier or Grenswacht it's just not shown anywhere, and it reappears as
+   soon as they land in a team again. Returns null on success, or an error string. */
 function movePersonToGroup(personId, destVal){
   var src = findPerson(personId);
   if(!src) return "Persoon niet gevonden.";
@@ -238,35 +242,30 @@ function movePersonToGroup(personId, destVal){
   if(src.kind === "grenswacht" && destKind === "grenswacht") return "Zit al bij de Grenswacht.";
   if(src.kind === "member" && destKind === "team" && src.team.id === destVal) return "Zit al in dat team.";
 
-  var name = src.obj.name, pin = src.obj.pin;
+  var name = src.obj.name, pin = src.obj.pin, balance = src.obj.balance || 0;
   var fromLabel = src.kind === "banker" ? "Bankier" : src.kind === "grenswacht" ? "Grenswacht" : src.team.name;
-  var leftover = 0;
 
   if(src.kind === "banker"){
     S.bankers = S.bankers.filter(function(b){ return b.id !== personId; });
   } else if(src.kind === "grenswacht"){
     S.grenswacht.members = S.grenswacht.members.filter(function(m){ return m.id !== personId; });
   } else {
-    if(destKind !== "team") leftover = src.obj.balance || 0;
     src.team.members = src.team.members.filter(function(m){ return m.id !== personId; });
-    if(leftover > 0) src.team.bank += leftover;
   }
 
   var toLabel;
   if(destKind === "banker"){
-    S.bankers.push({id:personId, name:name, pin:pin});
+    S.bankers.push({id:personId, name:name, pin:pin, balance:balance});
     toLabel = "Bankier";
   } else if(destKind === "grenswacht"){
-    S.grenswacht.members.push({id:personId, name:name, pin:pin});
+    S.grenswacht.members.push({id:personId, name:name, pin:pin, balance:balance});
     toLabel = "Grenswacht";
   } else {
-    var startBalance = src.kind === "member" ? (src.obj.balance || 0) : 0;
-    destTeam.members.push({id:personId, name:name, pin:pin, balance:startBalance, leader:false});
+    destTeam.members.push({id:personId, name:name, pin:pin, balance:balance, leader:false});
     toLabel = destTeam.name;
   }
 
-  logIt(name + " verhuisde van " + fromLabel + " naar " + toLabel +
-    (leftover > 0 ? " (resterend saldo van " + money(leftover) + " ging naar de kas van " + fromLabel + ")" : ""), "");
+  logIt(name + " verhuisde van " + fromLabel + " naar " + toLabel, "");
   return null;
 }
 function teamOf(id){ var p = findPerson(id); return p && p.team ? p.team : null; }
@@ -309,6 +308,7 @@ function render(){
 
   if(dbError){ html = dbErrorScreen(); wire = wireRetry; }
   else if(view && view.name === "admin-login"){ html = adminLoginScreen(); wire = wireAdminLogin; }
+  else if(view && view.name === "admin-set-password"){ html = adminSetPasswordScreen(); wire = wireAdminSetPassword; }
   else if(view && view.name === "admin-panel"){ html = adminPanelScreen(); wire = wireAdminPanel; }
   else if(S === undefined){ html = loadingScreen(); }
   else if(!S){
@@ -386,15 +386,49 @@ function wireAdminLogin(){
   var pw = document.getElementById("pw");
   pw.focus();
   function attempt(){
-    if(pw.value === ADMIN_PASSWORD){
+    var stillDefault = effectiveAdminPassword() === ADMIN_PASSWORD;
+    if(pw.value === effectiveAdminPassword()){
       adminAuthed = true;
-      go(S ? {name:"admin-panel"} : null);
+      go(stillDefault ? {name:"admin-set-password"} : (S ? {name:"admin-panel"} : null));
     } else {
       document.getElementById("err").textContent = "Verkeerd wachtwoord.";
     }
   }
   pw.onkeydown = function(e){ if(e.key === "Enter") attempt(); };
   document.getElementById("go").onclick = attempt;
+}
+
+function adminSetPasswordScreen(){
+  return '' +
+  '<div class="top"><div class="brand"><img src="./SPW_DeBoomIn_Huisstijl/logos/logo.jpg" class="brand-logo" alt="Logo"><h1>Kurkenemmer</h1></div></div>' +
+  '<h1>Nieuw admin-wachtwoord</h1>' +
+  '<p class="muted small">Je logt nog in met het standaardwachtwoord "placeholder". Kies er hier eentje van jezelf &mdash; dat vervangt het voortaan.</p>' +
+  '<div class="card" style="margin-top:1rem">' +
+    '<label for="npw">Nieuw wachtwoord</label>' +
+    '<input type="text" id="npw" autocomplete="off">' +
+    '<label for="npw2" style="margin-top:.6rem">Herhaal wachtwoord</label>' +
+    '<input type="text" id="npw2" autocomplete="off">' +
+  '</div>' +
+  '<div class="err" id="err"></div>' +
+  '<button class="btn primary" id="savePw" style="margin-top:.6rem">Wachtwoord instellen</button>' +
+  '<button class="btn quiet" id="skipPw" style="margin-top:.5rem">Later &mdash; blijf bij placeholder</button>';
+}
+function wireAdminSetPassword(){
+  var npw = document.getElementById("npw");
+  npw.focus();
+  function proceed(){ go(S ? {name:"admin-panel"} : null); }
+  document.getElementById("skipPw").onclick = proceed;
+  document.getElementById("savePw").onclick = function(){
+    var v = npw.value.trim();
+    var v2 = document.getElementById("npw2").value.trim();
+    var err = document.getElementById("err");
+    if(!v){ err.textContent = "Vul een wachtwoord in."; return; }
+    if(v === ADMIN_PASSWORD){ err.textContent = "Kies iets anders dan \"placeholder\"."; return; }
+    if(v !== v2){ err.textContent = "De wachtwoorden komen niet overeen."; return; }
+    if(S){ S.adminPassword = v; save(); }
+    else { pendingAdminPassword = v; }
+    proceed();
+  };
 }
 
 function adminPanelScreen(){
@@ -419,8 +453,8 @@ function adminPanelScreen(){
 
     extra = '' +
     '<div class="card sect"><h2>Iemand verplaatsen</h2>' +
-      '<p class="small muted">Verplaats iemand naar een andere groep of team. Persoonlijk geld verhuist mee naar een ander team; ' +
-        'gaat de persoon naar Bankier of Grenswacht, dan komt het resterende saldo in de kas van het oude team.</p>' +
+      '<p class="small muted">Verplaats iemand naar een andere groep of team. Hun persoonlijke saldo blijft altijd bij hen, ' +
+        'ook bij Bankier of Grenswacht &mdash; het wordt daar alleen niet getoond, en duikt weer op zodra ze in een team komen.</p>' +
       '<label for="moveWho">Persoon</label><select id="moveWho">' + moveWhoOpts + '</select>' +
       '<label for="moveTo">Naar</label><select id="moveTo">' + moveToOpts + '</select>' +
       '<div class="err" id="moveErr"></div>' +
@@ -557,11 +591,13 @@ function wireSetup(){
     S = {
       v:2,
       unit: val("unit") || "kurken",
+      adminPassword: pendingAdminPassword || null,
       bankers:[{id:uid(),name:b1,pin:null},{id:uid(),name:b2,pin:null}],
       grenswacht: {id:uid(), name:"Grenswacht", bank:0, members:gwMembers},
       teams: teams,
       log: [{t:Date.now(), text:"Kurkenemmer geopend", dir:""}]
     };
+    pendingAdminPassword = null;
     save();
     go(null);
   };

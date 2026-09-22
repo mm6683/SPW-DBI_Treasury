@@ -34,9 +34,18 @@ Alongside the full game reset, the admin panel now has:
 - **Codes resetten** — clear one specific person's PIN (they'll set a new one next
   time they sign in) without touching anyone else's.
 - **Iemand verplaatsen** — move any person between groups (a team, Bankiers, or
-  Grenswacht). Moving between two teams carries their personal balance with them;
-  moving into a balance-less group (Bankiers/Grenswacht) deposits their leftover
-  balance into their old team's kas first, so kurken are never silently lost.
+  Grenswacht). Their personal balance always stays attached to them — while they're
+  Bankier or Grenswacht it's simply not shown anywhere, and it reappears as soon as
+  they land in a team again.
+
+## Admin password
+
+The default login is `placeholder`. As long as that's still the active password,
+logging in with it prompts you to set a real one on the spot (with a "later" option
+to skip) — no code edits needed. The chosen password is stored in the shared game
+document (`S.adminPassword`) so it works from every device, and takes over from
+`placeholder` from then on. A full game reset clears it, so a fresh game starts back
+on `placeholder` and nudges again next login.
 
 ## One-time setup: connect Firebase (free)
 
@@ -96,8 +105,9 @@ python3 -m http.server 8000
 
 - **`firebaseConfig` still has placeholder values.** Until you fill it in (see
   above), the app will sit on "Verbinden…" / show a connection error.
-- **Admin password is a placeholder.** Search `index.html` for `ADMIN_PASSWORD` and
-  set a real value once you're out of the dev phase. This is a client-side check
-  only (visible in page source) — a soft gate, not real security.
+- **Admin password starts as a placeholder, on purpose.** The app nudges whoever
+  logs in with the default `placeholder` password to set a real one (see "Admin
+  password" above). This is still a client-side check only (visible in page
+  source) — a soft gate, not real security.
 - **Firestore rules are wide open** by design for simplicity — see the security
   note in step 3 above.
