@@ -4,6 +4,9 @@ A team cork/cash-tracking app (admin panel, player PIN sign-in, bankier role, te
 leaderboard) built as a single self-contained web page. All game state lives in a
 shared Firestore document, so every device sees updates live.
 
+A small credits line ("Ontwikkeld door Tygo A. & Midas M.") is appended to every
+screen from `render()` via `creditsFooter()` — edit that one function to change it.
+
 ## Structure
 
 ```
