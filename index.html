@@ -370,13 +370,14 @@ function wireWaiting(){
 }
 
 function adminLoginScreen(){
+  var showHint = !S; /* only hint at the default before the very first admin login ever (game not set up yet) */
   return '' +
   '<div class="top"><button class="linkbtn" id="back">&larr; Terug</button></div>' +
   '<h1>Admin login</h1>' +
   '<p class="muted small">Alleen voor de spelleider.</p>' +
   '<div class="card" style="margin-top:1rem">' +
     '<label for="pw">Wachtwoord</label>' +
-    '<input type="text" id="pw" placeholder="placeholder" autocomplete="off">' +
+    '<input type="text" id="pw"' + (showHint ? ' placeholder="placeholder"' : '') + ' autocomplete="off">' +
   '</div>' +
   '<div class="err" id="err"></div>' +
   '<button class="btn primary" id="go" style="margin-top:.6rem">Inloggen</button>';
@@ -621,7 +622,8 @@ function signInScreen(){
   '<div class="top"><div class="brand"><img src="./SPW_DeBoomIn_Huisstijl/logos/logo.jpg" class="brand-logo" alt="Logo"><h1>Kurkenemmer</h1></div>' +
   '<button class="linkbtn" id="adminLink">Beheerder</button></div>' +
   '<p class="muted">Wie ben jij?</p>' +
-  '<div class="stack" style="margin-top:.9rem">' + rows + '</div>';
+  '<div class="stack" style="margin-top:.9rem">' + rows + '</div>' +
+  '<p class="small muted" style="text-align:center;margin-top:2rem">Ontwikkeld door Tygo A. &amp; Midas M.</p>';
 }
 function teamNameOf(tid){
   var n = "";
@@ -894,7 +896,6 @@ function wireMove(){
     else if(kind === "take"){
       if(myRole() !== "banker" && myRole() !== "grenswacht"){ err.textContent = "Alleen een bankier of de Grenswacht kan dit doen."; return; }
       var hit = findPerson(targetId);
-      if(hit.obj.balance < n){ err.textContent = hit.obj.name + " heeft maar " + money(hit.obj.balance) + "."; return; }
       hit.obj.balance -= n;
       logIt(p.obj.name + " haalde " + money(n) + " weg bij " + hit.obj.name, "down");
     }

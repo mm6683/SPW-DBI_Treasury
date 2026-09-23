@@ -40,12 +40,25 @@ Alongside the full game reset, the admin panel now has:
 
 ## Admin password
 
-The default login is `placeholder`. As long as that's still the active password,
+The default login is `placeholder`. As long as that's still the *active* password,
 logging in with it prompts you to set a real one on the spot (with a "later" option
 to skip) — no code edits needed. The chosen password is stored in the shared game
 document (`S.adminPassword`) so it works from every device, and takes over from
 `placeholder` from then on. A full game reset clears it, so a fresh game starts back
 on `placeholder` and nudges again next login.
+
+Separately, the "placeholder" hint text on the login field itself only shows before
+the game has ever been set up. Once a game exists, the hint is gone for good — even
+if an admin skipped setting a real password and it's technically still `placeholder`
+under the hood.
+
+## Balances can go negative — but only from a bankier or Grenswacht
+
+Bankiers and Grenswacht can take more kurken from someone's personal account than
+they actually have, pushing their balance below zero (the confiscation sweep above
+the threshold is unaffected — it never takes more than the excess). Players cannot
+do this to themselves: deposits into a teamkas ("Storten in de kas van…") and
+sending money to someone else are still capped at what they currently have.
 
 ## One-time setup: connect Firebase (free)
 
