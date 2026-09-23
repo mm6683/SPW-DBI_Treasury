@@ -323,9 +323,12 @@ function render(){
   else if(view && view.name === "confiscate"){ html = confiscateScreen(); wire = wireConfiscate; }
   else { html = homeScreen(); wire = wireHome; }
 
-  app.innerHTML = html;
+  app.innerHTML = html + creditsFooter();
   if(wire) wire();
   restoreFocus(focusInfo);
+}
+function creditsFooter(){
+  return '<p class="small muted" style="text-align:center;margin-top:2rem">Ontwikkeld door Tygo A. &amp; Midas M.</p>';
 }
 
 function loadingScreen(){
@@ -622,8 +625,7 @@ function signInScreen(){
   '<div class="top"><div class="brand"><img src="./SPW_DeBoomIn_Huisstijl/logos/logo.jpg" class="brand-logo" alt="Logo"><h1>Kurkenemmer</h1></div>' +
   '<button class="linkbtn" id="adminLink">Beheerder</button></div>' +
   '<p class="muted">Wie ben jij?</p>' +
-  '<div class="stack" style="margin-top:.9rem">' + rows + '</div>' +
-  '<p class="small muted" style="text-align:center;margin-top:2rem">Ontwikkeld door Tygo A. &amp; Midas M.</p>';
+  '<div class="stack" style="margin-top:.9rem">' + rows + '</div>';
 }
 function teamNameOf(tid){
   var n = "";
